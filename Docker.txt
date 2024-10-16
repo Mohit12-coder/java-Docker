@@ -1,0 +1,42 @@
+# Use Ubuntu as the base OS
+FROM ubuntu:latest
+
+# Install utilities
+RUN apt-get update && apt-get install -y \
+    git vim build-essential \
+    openjdk-11-jdk \
+    wget \
+    dbus-x11 x11-utils x11-apps
+
+# Install Eclipse
+RUN wget -O /tmp/eclipse.tar.gz "https://www.eclipse.org/downloads/download.php?file=/technology/epp/downloads/release/2022-03/R/eclipse-java-2022-03-R-linux-gtk-x86_64.tar.gz&r=1" && \
+    tar -xf /tmp/eclipse.tar.gz -C /opt && \
+    rm /tmp/eclipse.tar.gz && \
+    ln -s /opt/eclipse/eclipse /usr/local/bin/eclipse
+
+# Install YAKINDU plugin for Solidity support (customize as needed)
+RUN /usr/local/bin/eclipse -application org.eclipse.equinox.p2.director -noSplash -repository http://download.eclipse.org/releases/neon -installIU yakindu.solidity.feature.group
+
+# Install Ethereum tools and Solc
+RUN apt-get install -y ethereum solc
+
+# Install Node.js and npm
+RUN apt-get install -y curl && \
+    curl -sL https://deb.nodesource.com/setup_14.x | bash - && \
+    apt-get install -y nodejs
+
+# Install Truffle globally
+RUN npm install -g truffle
+
+# Install ganache-cli (formerly ethereumjs-testrpc)
+RUN npm install -g ganache-cli
+
+# Set environment variables
+ENV DISPLAY=:0
+ENV ECLIPSE_HOME=/opt/eclipse
+
+# Entry point and command to start Eclipse
+CMD Xvfb :0 -screen 0 1024x768x24 -ac +extension GLX +render -noreset & \
+    dbus-uuidgen > /var/lib/dbus/machine-id && \
+    export $(dbus-launch) && \
+    /usr/local/bin/eclipse
